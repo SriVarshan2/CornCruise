@@ -44,6 +44,7 @@ export async function GET(
 
     // If it is a batch parent job, fetch its children and their status
     let children: any[] = [];
+    let batchStatus: string | undefined = undefined;
     if (job.payload && typeof job.payload === 'object' && (job.payload as any).batch === true) {
       children = await db
         .select({
@@ -55,12 +56,27 @@ export async function GET(
         })
         .from(jobs)
         .where(eq(jobs.parentJobId, jobId));
+
+      if (children.length > 0) {
+        const allCompleted = children.every(child => child.status === 'COMPLETED');
+        const allTerminal = children.every(child => child.status === 'COMPLETED' || child.status === 'FAILED');
+        const hasFailed = children.some(child => child.status === 'FAILED');
+
+        if (allCompleted) {
+          batchStatus = 'COMPLETED';
+        } else if (allTerminal && hasFailed) {
+          batchStatus = 'FAILED';
+        } else {
+          batchStatus = 'IN_PROGRESS';
+        }
+      }
     }
 
     return NextResponse.json({
       ...job,
       executions,
-      children
+      children,
+      ...(batchStatus !== undefined ? { batchStatus } : {})
     });
   } catch (error: any) {
     return NextResponse.json(
