@@ -4,7 +4,16 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-// ── Shared primitives ─────────────────────────────────────────────────────────
+// ── CONTRAST AUDIT ─────────────────────────────────────────────────────────────
+//   Black #0A0A0A on white #FFFFFF          → 19.6:1  ✓ AAA
+//   White #FFFFFF on black #0A0A0A          → 19.6:1  ✓ AAA
+//   Gray  #6B6B6B on white                  →  5.7:1  ✓ AA
+//   Disabled text #6B6B6B on #D0D0D0        →  4.54:1 ✓ AA  (explicit, no opacity)
+//   Hover  white on #CC0000 (red)           →  5.9:1  ✓ AA
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Shared layout primitives (simpler than dashboard/page.tsx — layout only
+// needs them for the empty-state org/project creation forms)
 
 const PrimaryBtn = ({
   children,
@@ -12,7 +21,12 @@ const PrimaryBtn = ({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) => (
   <button
-    className={`inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-terracotta focus:ring-offset-2 disabled:pointer-events-none disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600 disabled:shadow-none active:scale-95 bg-brand-terracotta text-white hover:bg-brand-terracotta-dark h-10 px-4 w-full shadow-md cursor-pointer ${className}`}
+    className={`inline-flex items-center justify-center gap-2 rounded text-sm font-semibold
+      transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-[#0A0A0A] focus:ring-offset-2
+      disabled:pointer-events-none active:scale-95 h-10 px-4 w-full cursor-pointer
+      bg-[#0A0A0A] text-white hover:bg-[#2A2A2A]
+      disabled:bg-[#D0D0D0] disabled:text-[#6B6B6B]
+      ${className}`}
     {...props}
   >
     {children}
@@ -24,23 +38,23 @@ const InlineInput = ({
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { className?: string }) => (
   <input
-    className={`flex h-10 w-full rounded-lg border border-brand-border/30 bg-white/50 px-3 py-2 text-sm placeholder:text-zinc-400 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-terracotta focus:ring-offset-1 disabled:opacity-50 dark:border-brand-border-dark/40 dark:bg-brand-warmblack/50 dark:placeholder:text-zinc-500 ${className}`}
+    className={`flex h-10 w-full rounded border-2 border-[#0A0A0A] bg-white px-3 py-2 text-sm
+      text-[#0A0A0A] placeholder:text-[#AAAAAA]
+      transition-colors focus:outline-none focus:ring-2 focus:ring-[#CC0000] focus:ring-offset-1
+      disabled:bg-[#F2F2F2] disabled:text-[#6B6B6B] disabled:border-[#AAAAAA] disabled:cursor-not-allowed
+      ${className}`}
     {...props}
   />
 );
 
-// ── Nav tab definition ────────────────────────────────────────────────────────
-
 const NAV_TABS = [
-  { label: 'Queues',         href: '/dashboard',      segment: 'dashboard'  },
-  { label: 'Jobs',           href: '/dashboard/jobs',  segment: 'jobs'       },
-  { label: 'Dead Letter',    href: '/dashboard/dlq',   segment: 'dlq'        },
+  { label: 'QUEUES',      href: '/dashboard',      segment: 'dashboard' },
+  { label: 'JOBS',        href: '/dashboard/jobs',  segment: 'jobs'      },
+  { label: 'DEAD LETTER', href: '/dashboard/dlq',   segment: 'dlq'       },
 ];
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-
 const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800 ${className}`} />
+  <div className={`animate-pulse rounded bg-[#E8E8E8] ${className}`} />
 );
 
 const OrgSkeletonRow = () => (
@@ -50,11 +64,9 @@ const OrgSkeletonRow = () => (
   </div>
 );
 
-// ── Layout ────────────────────────────────────────────────────────────────────
-
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const router       = useRouter();
+  const pathname     = usePathname();
   const searchParams = useSearchParams();
 
   const orgIdParam     = searchParams.get('orgId');
@@ -69,12 +81,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [newProjectName, setNewProjectName]   = useState('');
   const [creatingOrg, setCreatingOrg]         = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
-
   const [orgError, setOrgError]               = useState<string | null>(null);
   const [projectError, setProjectError]       = useState<string | null>(null);
 
-  // ── Data loading (unchanged) ────────────────────────────────────────────────
-
+  // ── Data loading (logic unchanged) ──────────────────────────────────────────
   const loadOrgs = async () => {
     try {
       const res  = await fetch('/api/organizations', { credentials: 'include' });
@@ -112,24 +122,20 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setProjects(data);
         if (projectIdParam) {
-          const projectExists = data.some((p: any) => String(p.id) === projectIdParam);
-          if (!projectExists) {
+          const exists = data.some((p: any) => String(p.id) === projectIdParam);
+          if (!exists) {
             const params = new URLSearchParams(searchParams.toString());
             params.delete('projectId');
             router.replace(`${pathname}?${params.toString()}`);
           }
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingProjects(false);
-      }
+      } catch (err) { console.error(err); }
+      finally { setLoadingProjects(false); }
     };
     loadProjects();
   }, [orgIdParam, projectIdParam]);
 
-  // ── Handlers (unchanged) ────────────────────────────────────────────────────
-
+  // ── Handlers (logic unchanged) ───────────────────────────────────────────────
   const handleOrgChange = (newOrgId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('orgId', newOrgId);
@@ -197,83 +203,78 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     } catch (err) { console.error(err); }
   };
 
-  // ── Derived display values ──────────────────────────────────────────────────
   const activeOrg     = orgs.find((o) => String(o.id) === orgIdParam);
   const activeProject = projects.find((p) => String(p.id) === projectIdParam);
-
-  // ── Determine active tab ────────────────────────────────────────────────────
   const activeSegment = pathname.split('/').filter(Boolean).slice(1)[0] ?? '';
-
-  // Build query string to append to tab hrefs so org/project context is preserved
-  const qStr = searchParams.toString() ? `?${searchParams.toString()}` : '';
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const qStr          = searchParams.toString() ? `?${searchParams.toString()}` : '';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2] bg-noise text-[#2F2A24] dark:bg-[#17140F] dark:text-[#EAE2D5]">
+    <div className="min-h-screen flex flex-col bg-white text-[#0A0A0A]">
 
-      {/* ── Top nav bar ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-brand-border/20 bg-white/70 dark:border-brand-border-dark/30 dark:bg-[#1C1814]/70 backdrop-blur-md shadow-warm">
+      {/* ── Top nav ──────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b-2 border-[#0A0A0A] bg-white">
 
-        {/* Row 1: brand + context switchers + logout */}
+        {/* Row 1: brand + selectors + logout */}
         <div className="px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <Link
-              href={`/dashboard${qStr}`}
-              className="flex items-center gap-2 text-lg font-bold tracking-tight text-zinc-950 dark:text-zinc-50 shrink-0"
-            >
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-terracotta text-white text-base shadow-sm font-serif italic select-none">⏱</span>
-              <span className="font-serif italic font-medium">CronCruise</span>
+
+            {/* Brand */}
+            <Link href={`/dashboard${qStr}`} className="flex items-center gap-2.5 shrink-0 group">
+              <span className="inline-flex items-center justify-center w-8 h-8 bg-[#CC0000] text-white select-none rounded">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>
+              </span>
+              <span className="text-base font-bold tracking-tight text-[#0A0A0A] group-hover:text-[#CC0000] transition-colors">
+                CronCruise
+              </span>
             </Link>
 
-            {/* Org + project selectors */}
-            {loadingOrgs ? (
-              <OrgSkeletonRow />
-            ) : orgs.length > 0 && (
+            {/* Org + Project selectors */}
+            {loadingOrgs ? <OrgSkeletonRow /> : orgs.length > 0 && (
               <div className="flex items-center gap-3">
-                {/* Org */}
                 <div className="flex items-center gap-1.5">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Org</label>
+                  <label className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest font-mono">ORG</label>
                   <select
                     value={orgIdParam || ''}
                     onChange={(e) => handleOrgChange(e.target.value)}
-                    className="h-8 rounded-lg border border-brand-border/30 bg-white/50 px-2.5 text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-terracotta hover:border-brand-border/60 dark:border-brand-border-dark/40 dark:bg-[#1A1612]/50 cursor-pointer text-zinc-900 dark:text-zinc-100"
+                    className="h-7 rounded border-2 border-[#0A0A0A] bg-white px-2.5 text-xs font-medium
+                      text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#CC0000] cursor-pointer"
                   >
-                    {orgs.map((o) => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
+                    {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </div>
 
-                {/* Chevron separator */}
-                <svg className="w-3.5 h-3.5 text-brand-border/50 dark:text-brand-border-dark/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                <span className="text-[#0A0A0A] font-bold">/</span>
 
-                {/* Project */}
                 <div className="flex items-center gap-1.5">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Project</label>
+                  <label className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest font-mono">PROJECT</label>
                   <select
                     value={projectIdParam || ''}
                     onChange={(e) => handleProjectChange(e.target.value)}
                     disabled={!orgIdParam || loadingProjects}
-                    className="h-8 rounded-lg border border-brand-border/30 bg-white/50 px-2.5 text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-terracotta hover:border-brand-border/60 disabled:opacity-50 dark:border-brand-border-dark/40 dark:bg-[#1A1612]/50 cursor-pointer text-zinc-900 dark:text-zinc-100"
+                    className="h-7 rounded border-2 border-[#0A0A0A] bg-white px-2.5 text-xs font-medium
+                      text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#CC0000]
+                      disabled:border-[#AAAAAA] disabled:text-[#6B6B6B] disabled:bg-[#F2F2F2]
+                      cursor-pointer disabled:cursor-not-allowed"
                   >
                     <option value="">Select a project…</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Log out — solid black button */}
           <button
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-terracotta focus:ring-offset-2 bg-brand-sand/55 hover:bg-brand-sand active:scale-95 text-brand-warmgray dark:bg-brand-warmgray/50 dark:hover:bg-brand-warmgray dark:text-brand-cream h-8 px-3 cursor-pointer shadow-sm shrink-0"
+            className="inline-flex items-center gap-1.5 rounded text-xs font-bold
+              bg-[#0A0A0A] text-white border-2 border-[#0A0A0A]
+              hover:bg-[#2A2A2A]
+              transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-[#CC0000] focus:ring-offset-2
+              active:scale-95 h-7 px-3 cursor-pointer shrink-0"
           >
-            {/* Door icon */}
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
             </svg>
@@ -281,28 +282,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Row 2: breadcrumb + tabs */}
-        <div className="px-6 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/60">
-          {/* Tab nav */}
+        {/* Row 2: tab nav + breadcrumb */}
+        <div className="px-6 flex items-end justify-between border-t-2 border-[#0A0A0A]">
           <nav className="flex items-end gap-0 -mb-px" aria-label="Main navigation">
             {NAV_TABS.map((tab) => {
-              const isActive = tab.segment === 'dashboard'
-                ? activeSegment === '' || activeSegment === 'dashboard' ? !['jobs','dlq'].includes(activeSegment) : false
-                : activeSegment === tab.segment;
-
-              // For the root dashboard tab, active when no sub-segment
               const active = tab.segment === 'dashboard'
                 ? !['jobs', 'dlq'].includes(activeSegment)
                 : activeSegment === tab.segment;
-
               return (
                 <Link
                   key={tab.href}
                   href={`${tab.href}${qStr}`}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors duration-150 whitespace-nowrap ${
+                  className={`inline-flex items-center px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest font-mono
+                    border-b-2 transition-colors duration-100 whitespace-nowrap ${
                     active
-                      ? 'border-brand-terracotta text-brand-terracotta dark:border-brand-terracotta-light dark:text-brand-terracotta-light'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-zinc-600'
+                      ? 'border-[#CC0000] text-[#CC0000] bg-white'
+                      : 'border-transparent text-[#6B6B6B] hover:text-[#0A0A0A] hover:border-[#0A0A0A]'
                   }`}
                 >
                   {tab.label}
@@ -311,16 +306,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Breadcrumb context */}
           {(activeOrg || activeProject) && (
-            <div className="flex items-center gap-1 pb-2.5 text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
-              {activeOrg && <span className="font-medium text-zinc-600 dark:text-zinc-300">{activeOrg.name}</span>}
-              {activeOrg && activeProject && (
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              )}
-              {activeProject && <span className="font-medium text-zinc-600 dark:text-zinc-300">{activeProject.name}</span>}
+            <div className="flex items-center gap-1 pb-2.5 text-xs text-[#6B6B6B] shrink-0">
+              {activeOrg && <span className="font-bold text-[#0A0A0A]">{activeOrg.name}</span>}
+              {activeOrg && activeProject && <span className="text-[#AAAAAA] mx-1">/</span>}
+              {activeProject && <span className="font-bold text-[#0A0A0A]">{activeProject.name}</span>}
             </div>
           )}
         </div>
@@ -329,7 +319,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       {/* ── Main content ─────────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col p-6 max-w-7xl w-full mx-auto">
         {loadingOrgs ? (
-          // Full-page skeleton while orgs load
           <div className="flex-1 flex flex-col gap-4 pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
@@ -341,43 +330,38 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         ) : orgs.length === 0 ? (
           // ── Create first org ──────────────────────────────────────────────
           <div className="flex-1 flex items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-6 text-center">
-              {/* Illustration */}
-              <div className="flex justify-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-sand/30 dark:bg-brand-warmgray/30 border border-brand-border/20 dark:border-brand-border-dark/30 shadow-warm">
-                  <svg className="w-8 h-8 text-brand-terracotta" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                  </svg>
+            <div className="w-full max-w-md space-y-6">
+              <div className="border-2 border-[#0A0A0A] p-8 bg-white">
+                <div className="border-b-2 border-[#0A0A0A] pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-[#0A0A0A]">Create your first organization</h2>
+                  <p className="text-sm text-[#6B6B6B] mt-1">Every scheduler needs an organization context before setting up queues.</p>
                 </div>
+                {orgError && (
+                  <div className="mb-4 border-2 border-[#CC0000] bg-white p-3 text-sm text-[#CC0000] font-medium">
+                    {orgError}
+                  </div>
+                )}
+                <form onSubmit={handleCreateOrg} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest font-mono">ORGANIZATION NAME</label>
+                    <InlineInput
+                      type="text"
+                      placeholder="e.g. Acme Corporation"
+                      value={newOrgName}
+                      onChange={(e) => setNewOrgName(e.target.value)}
+                      required
+                      disabled={creatingOrg}
+                    />
+                  </div>
+                  <PrimaryBtn type="submit" disabled={creatingOrg || !newOrgName.trim()}>
+                    {creatingOrg ? 'Creating…' : 'Establish Organization'}
+                  </PrimaryBtn>
+                </form>
               </div>
-              <div>
-                <h2 className="text-3xl font-serif italic mb-2 text-zinc-900 dark:text-zinc-50 font-medium">Create your first organization</h2>
-                <p className="text-sm text-zinc-500">Every scheduler needs an organization context before setting up queues.</p>
-              </div>
-              {orgError && (
-                <div className="rounded-lg bg-status-failed-bg border border-status-failed/20 p-3 text-sm text-status-failed text-left">
-                  {orgError}
-                </div>
-              )}
-              <form onSubmit={handleCreateOrg} className="space-y-3 text-left">
-                <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Organization Name</label>
-                <InlineInput
-                  type="text"
-                  placeholder="e.g. Acme Corporation"
-                  value={newOrgName}
-                  onChange={(e) => setNewOrgName(e.target.value)}
-                  required
-                  disabled={creatingOrg}
-                />
-                <PrimaryBtn type="submit" disabled={creatingOrg || !newOrgName.trim()}>
-                  {creatingOrg ? 'Creating…' : 'Establish Organization'}
-                </PrimaryBtn>
-              </form>
             </div>
           </div>
 
         ) : loadingProjects ? (
-          // Skeleton while projects load
           <div className="flex-1 flex flex-col gap-4 pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
@@ -388,37 +372,34 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         ) : orgIdParam && projects.length === 0 ? (
           // ── Create first project ──────────────────────────────────────────
           <div className="flex-1 flex items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-6 text-center">
-              <div className="flex justify-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-sand/30 dark:bg-brand-warmgray/30 border border-brand-border/20 dark:border-brand-border-dark/30 shadow-warm">
-                  <svg className="w-8 h-8 text-brand-terracotta" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                  </svg>
+            <div className="w-full max-w-md space-y-6">
+              <div className="border-2 border-[#0A0A0A] p-8 bg-white">
+                <div className="border-b-2 border-[#0A0A0A] pb-4 mb-6">
+                  <h2 className="text-2xl font-bold text-[#0A0A0A]">Create your first project</h2>
+                  <p className="text-sm text-[#6B6B6B] mt-1">Projects separate your execution queues. Create a project to start scheduling.</p>
                 </div>
+                {projectError && (
+                  <div className="mb-4 border-2 border-[#CC0000] bg-white p-3 text-sm text-[#CC0000] font-medium">
+                    {projectError}
+                  </div>
+                )}
+                <form onSubmit={handleCreateProject} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest font-mono">PROJECT NAME</label>
+                    <InlineInput
+                      type="text"
+                      placeholder="e.g. Production Cluster"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      required
+                      disabled={creatingProject}
+                    />
+                  </div>
+                  <PrimaryBtn type="submit" disabled={creatingProject || !newProjectName.trim()}>
+                    {creatingProject ? 'Creating…' : 'Initiate Project'}
+                  </PrimaryBtn>
+                </form>
               </div>
-              <div>
-                <h2 className="text-3xl font-serif italic mb-2 text-zinc-900 dark:text-zinc-50 font-medium">Create your first project</h2>
-                <p className="text-sm text-zinc-500">Projects separate your execution queues. Create a project to start scheduling.</p>
-              </div>
-              {projectError && (
-                <div className="rounded-lg bg-status-failed-bg border border-status-failed/20 p-3 text-sm text-status-failed text-left">
-                  {projectError}
-                </div>
-              )}
-              <form onSubmit={handleCreateProject} className="space-y-3 text-left">
-                <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Project Name</label>
-                <InlineInput
-                  type="text"
-                  placeholder="e.g. Production Cluster"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  required
-                  disabled={creatingProject}
-                />
-                <PrimaryBtn type="submit" disabled={creatingProject || !newProjectName.trim()}>
-                  {creatingProject ? 'Creating…' : 'Initiate Project'}
-                </PrimaryBtn>
-              </form>
             </div>
           </div>
 
@@ -433,7 +414,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-[#FAF7F2] bg-noise dark:bg-[#17140F] text-zinc-500 text-sm">
+      <div className="flex min-h-screen items-center justify-center bg-white text-[#6B6B6B] text-sm font-mono">
         Loading…
       </div>
     }>

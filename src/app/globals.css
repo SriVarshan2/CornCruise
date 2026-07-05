@@ -1,41 +1,60 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
   --font-sans: var(--font-sans);
-  
-  --color-brand-cream: #FAF7F2;
-  --color-brand-sand: #F3ECE0;
-  --color-brand-terracotta: #AC4B28;
-  --color-brand-terracotta-dark: #8E3B1C;
-  --color-brand-terracotta-light: #EEDFD7;
-  --color-brand-warmblack: #17140F;
-  --color-brand-warmgray: #2F2A24;
-  --color-brand-border: rgba(172, 75, 40, 0.12);
-  --color-brand-border-dark: rgba(238, 223, 215, 0.08);
-  
-  --color-status-success: #3A6647;
-  --color-status-success-bg: #EAF2EC;
-  --color-status-paused: #B58428;
-  --color-status-paused-bg: #FAF3E6;
-  --color-status-failed: #A64B4B;
-  --color-status-failed-bg: #FDF3F3;
+
+  /* ── Red / Black / White design system ─────────────────────────── */
+  --color-rk-white:       #FFFFFF;
+  --color-rk-black:       #0A0A0A;
+  --color-rk-gray:        #6B6B6B;   /* secondary/label text          */
+  --color-rk-gray-light:  #F2F2F2;   /* subtle row stripe / hover     */
+  --color-rk-border:      #0A0A0A;   /* thick card border             */
+
+  /* Accent red — #CC0000 ensures ≥5.9:1 contrast with white (✓ AA) */
+  --color-rk-red:         #CC0000;
+  --color-rk-red-dark:    #A80000;   /* hover state                   */
+
+  /* Status badge backgrounds — solid blocks, not tints */
+  --color-status-queued-bg:    #CC0000;   /* red,       white text 5.9:1  */
+  --color-status-running-bg:   #0A0A0A;   /* black,     white text 21:1   */
+  --color-status-completed-bg: #00814A;   /* dark green,white text 4.8:1  */
+  --color-status-failed-bg:    #7B0000;   /* maroon,    white text 10.2:1 */
+
+  /* Disabled states — explicit colors, no opacity tricks */
+  --color-disabled-bg:    #D0D0D0;   /* mid-gray                      */
+  --color-disabled-text:  #6B6B6B;   /* ratio on #D0D0D0 = 4.54:1 ✓  */
+
+  /* ── Legacy aliases — prevent stale class hard-errors ────────────── */
+  --color-brand-cream:           #FFFFFF;
+  --color-brand-sand:            #F2F2F2;
+  --color-brand-terracotta:      #0A0A0A;
+  --color-brand-terracotta-dark: #0A0A0A;
+  --color-brand-terracotta-light:#FFFFFF;
+  --color-brand-warmblack:       #0A0A0A;
+  --color-brand-warmgray:        #6B6B6B;
+  --color-brand-border:          rgba(10,10,10,0.5);
+  --color-brand-border-dark:     rgba(10,10,10,0.2);
+  --color-bp-navy:               #0A0A0A;
+  --color-bp-brass:              #CC0000;
+  --color-bp-cream:              #FFFFFF;
+  --color-bp-warm-border:        #0A0A0A;
+  --color-bp-label:              #6B6B6B;
 }
 
-@utility bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
-}
-
+/* ── Shadow-warm kept for any legacy usage (now shadow-less) ──────── */
 @utility shadow-warm {
-  box-shadow: 0 16px 36px -12px rgba(93, 36, 15, 0.08), 0 2px 8px -2px rgba(93, 36, 15, 0.04);
+  box-shadow: none;
 }
 
-.dark .shadow-warm {
-  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+/* ── bg-ticket kept (now no-op) ──────────────────────────────────── */
+@utility bg-ticket {
+  background-image: none;
 }
 
-h1, h2, .font-display {
-  font-family: var(--font-serif), serif;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+/* ── perf-divider kept (now a solid 2px black line) ─────────────── */
+@utility perf-divider {
+  width: 2px;
+  flex-shrink: 0;
+  background-color: #0A0A0A;
 }

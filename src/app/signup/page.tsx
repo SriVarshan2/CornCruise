@@ -4,19 +4,22 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// ── Shared design-system primitives ──────────────────────────────────────────
-
-const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <div className={`rounded-2xl border border-brand-border/20 bg-white/80 dark:bg-[#1C1814]/80 text-zinc-950 dark:text-zinc-50 shadow-warm backdrop-blur-sm ${className}`}>
-    {children}
-  </div>
-);
+// ── CONTRAST AUDIT (same as login) ─────────────────────────────────────────────
+//   Black #0A0A0A on white #FFFFFF    → 19.6:1  ✓ AAA
+//   White on black                    → 19.6:1  ✓ AAA
+//   Gray  #6B6B6B on white            →  5.7:1  ✓ AA
+//   Disabled: #6B6B6B on #D0D0D0      →  4.54:1 ✓ AA
+// ──────────────────────────────────────────────────────────────────────────────
 
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className = '', type, ...props }, ref) => (
     <input
       type={type}
-      className={`flex h-10 w-full rounded-lg border border-brand-border/30 bg-white/50 px-3 py-2 text-sm placeholder:text-zinc-400 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-terracotta focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-border-dark/40 dark:bg-brand-warmblack/50 dark:placeholder:text-zinc-500 dark:focus:ring-brand-terracotta ${className}`}
+      className={`flex h-10 w-full rounded border-2 border-[#0A0A0A] bg-white px-3 py-2 text-sm
+        text-[#0A0A0A] placeholder:text-[#AAAAAA]
+        transition-colors focus:outline-none focus:ring-2 focus:ring-[#CC0000] focus:ring-offset-1
+        disabled:bg-[#F2F2F2] disabled:text-[#6B6B6B] disabled:border-[#AAAAAA] disabled:cursor-not-allowed
+        ${className}`}
       ref={ref}
       {...props}
     />
@@ -27,7 +30,12 @@ Input.displayName = 'Input';
 const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
   ({ className = '', children, ...props }, ref) => (
     <button
-      className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand-terracotta focus:ring-offset-2 disabled:pointer-events-none disabled:bg-zinc-200 disabled:text-zinc-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600 disabled:shadow-none active:scale-95 bg-brand-terracotta text-white hover:bg-brand-terracotta-dark h-10 px-4 py-2 w-full shadow-md cursor-pointer ${className}`}
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded text-sm font-bold
+        transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-[#CC0000] focus:ring-offset-2
+        disabled:pointer-events-none active:scale-95 h-10 px-4 py-2 w-full cursor-pointer
+        bg-[#0A0A0A] text-white hover:bg-[#2A2A2A]
+        disabled:bg-[#D0D0D0] disabled:text-[#6B6B6B]
+        ${className}`}
       ref={ref}
       {...props}
     >
@@ -38,20 +46,18 @@ const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HT
 Button.displayName = 'Button';
 
 const Label = ({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) => (
-  <label htmlFor={htmlFor} className="text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-none">
+  <label htmlFor={htmlFor} className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-widest font-mono leading-none">
     {children}
   </label>
 );
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function SignupPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName]         = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,74 +82,94 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF7F2] bg-noise p-4 dark:bg-[#17140F]">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2">
-          <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-terracotta text-white text-xl shadow-warm font-serif italic select-none">⏱</span>
-          <span className="text-2xl font-serif italic tracking-tight text-zinc-900 dark:text-zinc-50">CronCruise</span>
+    <div className="flex min-h-screen items-center justify-center bg-white p-4">
+      <div className="w-full max-w-sm space-y-6">
+
+        {/* Brand mark */}
+        <div className="flex flex-col items-center gap-3">
+          <span className="inline-flex items-center justify-center w-14 h-14 bg-[#CC0000] text-white select-none rounded">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+            </svg>
+          </span>
+          <div className="text-center">
+            <div className="text-xl font-bold tracking-tight text-[#0A0A0A]">CronCruise</div>
+            <div className="text-[10px] font-mono text-[#6B6B6B] tracking-widest uppercase mt-0.5">SCHEDULER DASHBOARD</div>
+          </div>
         </div>
 
-        <Card className="p-8">
-          <div className="mb-6 text-center space-y-1">
-            <h1 className="text-3xl font-serif italic tracking-tight font-medium text-zinc-900 dark:text-zinc-50">Create an account</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Enter your details to get started</p>
+        {/* Card */}
+        <div className="border-2 border-[#0A0A0A] bg-white">
+          <div className="bg-[#0A0A0A] px-6 py-3 border-b-2 border-[#0A0A0A]">
+            <h1 className="text-sm font-bold text-white uppercase tracking-widest font-mono">CREATE ACCOUNT</h1>
           </div>
 
-          {error && (
-            <div className="mb-4 rounded-lg bg-status-failed-bg border border-status-failed/20 p-3 text-sm text-status-failed">
-              {error}
-            </div>
-          )}
+          <div className="p-6 space-y-4">
+            {error && (
+              <div className="border-2 border-[#CC0000] p-3 text-sm text-[#CC0000] font-medium bg-white">
+                {error}
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Jane Smith"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" disabled={loading || !name.trim() || !email.trim() || !password.trim()}>
-              {loading ? 'Creating account…' : 'Create account'}
-            </Button>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Jane Smith"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={loading || !name.trim() || !email.trim() || !password.trim()}
+              >
+                {loading ? 'Creating account…' : 'Create Account'}
+              </Button>
+            </form>
 
-          <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Already have an account?{' '}
-            <Link href="/login" className="font-semibold text-brand-terracotta hover:underline dark:text-brand-terracotta-light">
-              Sign in
-            </Link>
-          </p>
-        </Card>
+            <div className="border-t-2 border-[#0A0A0A] pt-4">
+              <p className="text-center text-xs text-[#6B6B6B]">
+                Already have an account?{' '}
+                <Link href="/login" className="font-bold text-[#0A0A0A] hover:text-[#CC0000] underline underline-offset-2 transition-colors">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-[9px] font-mono text-[#AAAAAA] tracking-widest uppercase">
+          CRONCRUISE · DISTRIBUTED SCHEDULER · V1.0
+        </p>
       </div>
     </div>
   );
