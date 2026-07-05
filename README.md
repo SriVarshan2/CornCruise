@@ -16,7 +16,6 @@ CronCruise is a production-inspired distributed job scheduling platform built as
 
 ## 🏗 System Architecture
 
-```mermaid
 mermaid
 flowchart TB
     Browser["Browser Dashboard<br/>(Next.js + React)"]
@@ -37,7 +36,6 @@ flowchart TB
     DLQ --> DB
 ```
 
-Requests from the dashboard flow through Next.js API routes, gated by JWT auth and tenant-isolation middleware. Since Vercel's Hobby tier does not support sub-daily cron schedules, an external scheduler (cron-job.org) invokes the executor endpoint every minute. The executor atomically claims jobs, runs the retry/backoff engine on failures, and routes exhausted retries to the Dead Letter Queue. All state lives in a single Neon Postgres database.
 
 ### Core Mechanisms
 
