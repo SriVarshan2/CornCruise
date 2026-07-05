@@ -6,7 +6,6 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const { searchParams } = new URL(request.url);
     const orgIdStr = searchParams.get('orgId');
 
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
     }
 
     // Verify tenant access for the organization
-    const access = await checkTenantAccess(authHeader, { type: 'org', id: orgId });
+    const access = await checkTenantAccess(request, { type: 'org', id: orgId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }
@@ -41,7 +40,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const body = await request.json();
     const { name, type, baseDelayMs, maxDelayMs, orgId } = body;
 
@@ -65,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     // Verify tenant access before allowing retry policy creation
-    const access = await checkTenantAccess(authHeader, { type: 'org', id: parsedOrgId });
+    const access = await checkTenantAccess(request, { type: 'org', id: parsedOrgId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }

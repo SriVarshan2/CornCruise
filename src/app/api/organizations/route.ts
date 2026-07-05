@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { organizations, organizationMembers } from '@/db/schema';
-import { verifyJWT } from '@/lib/auth';
+import { verifyJWT, extractToken } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
     }
-    const token = authHeader.substring(7);
     const payload = await verifyJWT(token);
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized: Session expired or invalid' }, { status: 401 });
@@ -37,11 +36,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
     }
-    const token = authHeader.substring(7);
     const payload = await verifyJWT(token);
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized: Session expired or invalid' }, { status: 401 });

@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import { organizationMembers, projects, queues, jobs } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { verifyJWT } from './auth';
+import { verifyJWT, extractToken } from './auth';
 
 export interface AuthContext {
   userId: number;
@@ -16,20 +16,20 @@ export type ResourceDescriptor =
 
 /**
  * Reusable tenant isolation function.
- * 1. Verifies the user's JWT from the Authorization header.
+ * 1. Verifies the user's JWT from the request (Authorization header or fallback cookie).
  * 2. Cascades checks up the entity tree to verify if the user is a member
  *    of the organization that owns the requested resource.
  */
 export async function checkTenantAccess(
-  authHeader: string | null,
+  request: Request,
   resource: ResourceDescriptor
 ): Promise<{ success: boolean; context?: AuthContext; error?: string }> {
   // 1. Verify JWT presence & validity
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractToken(request);
+  if (!token) {
     return { success: false, error: 'Unauthorized: Missing or invalid token' };
   }
   
-  const token = authHeader.substring(7);
   const payload = await verifyJWT(token);
   if (!payload) {
     return { success: false, error: 'Unauthorized: Session expired or invalid' };

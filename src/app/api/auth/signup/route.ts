@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       email: newUser.email
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       user: {
         id: newUser.id,
@@ -49,6 +49,18 @@ export async function POST(request: Request) {
         name: newUser.name
       }
     }, { status: 201 });
+
+    response.cookies.set({
+      name: 'token',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 86400
+    });
+
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Internal Server Error' },

@@ -6,7 +6,6 @@ import { eq, and, sql } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const { searchParams } = new URL(request.url);
     const projectIdStr = searchParams.get('projectId');
 
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
     }
 
     // Verify tenant access
-    const access = await checkTenantAccess(authHeader, { type: 'project', id: projectId });
+    const access = await checkTenantAccess(request, { type: 'project', id: projectId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }
@@ -64,7 +63,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const body = await request.json();
     const { projectId, name, priority, concurrencyLimit, maxRetries, retryPolicyId } = body;
 
@@ -81,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     // Verify tenant access
-    const access = await checkTenantAccess(authHeader, { type: 'project', id: parsedProjectId });
+    const access = await checkTenantAccess(request, { type: 'project', id: parsedProjectId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }

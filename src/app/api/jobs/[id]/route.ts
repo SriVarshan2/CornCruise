@@ -9,8 +9,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const authHeader = request.headers.get('authorization');
-    
     // Resolve dynamic path parameter
     const resolvedParams = await params;
     const jobId = parseInt(resolvedParams.id, 10);
@@ -20,7 +18,7 @@ export async function GET(
     }
 
     // Verify tenant access for the job
-    const access = await checkTenantAccess(authHeader, { type: 'job', id: jobId });
+    const access = await checkTenantAccess(request, { type: 'job', id: jobId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }

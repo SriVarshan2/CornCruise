@@ -54,3 +54,27 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
     return null;
   }
 }
+
+/**
+ * Extracts the JWT from the Authorization header or the "token" cookie.
+ */
+export function extractToken(request: Request): string | null {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
+  // Fallback to cookie parser (safe for both Edge and Node runtimes)
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    const cookiesList = cookieHeader.split(';');
+    for (const cookie of cookiesList) {
+      const [cookieName, cookieValue] = cookie.trim().split('=');
+      if (cookieName === 'token') {
+        return decodeURIComponent(cookieValue);
+      }
+    }
+  }
+
+  return null;
+}

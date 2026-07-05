@@ -7,7 +7,6 @@ import parser from 'cron-parser';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const { searchParams } = new URL(request.url);
     const queueIdStr = searchParams.get('queueId');
 
@@ -20,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     // Verify tenant access for the queue
-    const access = await checkTenantAccess(authHeader, { type: 'queue', id: queueId });
+    const access = await checkTenantAccess(request, { type: 'queue', id: queueId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }
@@ -80,7 +79,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
     const body = await request.json();
     const { queueId, type, payload, delaySeconds, cronExpression, payloads } = body;
 
@@ -94,7 +92,7 @@ export async function POST(request: Request) {
     }
 
     // Verify tenant access for the queue
-    const access = await checkTenantAccess(authHeader, { type: 'queue', id: parsedQueueId });
+    const access = await checkTenantAccess(request, { type: 'queue', id: parsedQueueId });
     if (!access.success) {
       return NextResponse.json({ error: access.error }, { status: access.error?.includes('Unauthorized') ? 401 : 403 });
     }
@@ -167,7 +165,7 @@ export async function POST(request: Request) {
       }
 
       try {
-        parser.parseExpression(cronExpression);
+        parser.parse(cronExpression);
       } catch (e) {
         return NextResponse.json({ error: 'Invalid cronExpression format' }, { status: 400 });
       }
