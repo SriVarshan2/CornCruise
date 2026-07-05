@@ -76,6 +76,16 @@ describe('Recurring Job Reschedule Runtime Test', () => {
     while (!rescheduledSuccess && attempts < 10) {
       attempts++;
       console.log(`Cron execution sweep attempt #${attempts}`);
+
+      // Read the job's state BEFORE the sweep
+      const [preJob] = await db.select().from(jobs).where(eq(jobs.id, jobData.id));
+      console.log('Job state BEFORE sweep:', {
+        id: preJob.id,
+        status: preJob.status,
+        attempts: preJob.attempts,
+        scheduledFor: preJob.scheduledFor,
+        lockedAt: preJob.lockedAt,
+      });
       
       const execRes = await fetch(executeUrl, {
         headers: {
@@ -85,30 +95,36 @@ describe('Recurring Job Reschedule Runtime Test', () => {
       const execSummary = await execRes.json();
       console.log('Cron execute summary:', execSummary);
 
-      // Check the job's state in the database
+      // Check the job's state AFTER the sweep (immediately, before any further action)
       const [updatedJob] = await db.select().from(jobs).where(eq(jobs.id, jobData.id));
-      console.log('Job state in DB:', {
+      console.log('Job state AFTER sweep:', {
         id: updatedJob.id,
         status: updatedJob.status,
         attempts: updatedJob.attempts,
         scheduledFor: updatedJob.scheduledFor,
       });
 
-      if (execSummary.recurringRescheduled > 0) {
+      // Check if OUR SPECIFIC JOB was actually rescheduled (not just any job in the sweep).
+      // The global recurringRescheduled counter can fire for unrelated leftover jobs in the DB.
+      const ourJobWasRescheduled =
+        updatedJob.status === 'QUEUED' &&
+        new Date(updatedJob.scheduledFor).getTime() > Date.now();
+
+      if (ourJobWasRescheduled) {
         rescheduledSuccess = true;
+        console.log(`OUR job ${jobData.id} was rescheduled. global recurringRescheduled=${execSummary.recurringRescheduled}`);
         
         // Confirm schedule updated correctly to the future next occurrence
         expect(updatedJob.status).toBe('QUEUED');
-        // The executor resets attempts to 0 on reschedule; however, reading from
-        // a separate Neon HTTP session may transiently observe the incremented value (1)
-        // before the reset propagates. The critical invariant — QUEUED + future scheduledFor
-        // — is what we're verifying here.
-        expect(updatedJob.attempts).toBeLessThanOrEqual(1);
+        // After a successful reschedule, the executor sets attempts=0.
+        // If attempts is still 1 here, that means our job was NOT the one that was
+        // rescheduled (a different recurring job was) and the counter was misleading.
+        expect(updatedJob.attempts).toBe(0);
         expect(new Date(updatedJob.scheduledFor).getTime()).toBeGreaterThan(Date.now());
         break;
       } else {
-        // If the mock execution returned failure (30% chance), the job status becomes QUEUED (retry) or FAILED
-        // Let's reset the job status back to QUEUED, attempts back to 0, scheduled_for back to now, so it is claimable again
+        // Our specific job was not rescheduled yet — reset it so the next sweep can claim it
+        console.log(`Job ${jobData.id} not rescheduled this sweep. Resetting for next attempt.`);
         await db.update(jobs).set({
           status: 'QUEUED',
           attempts: 0,

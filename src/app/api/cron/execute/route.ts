@@ -140,14 +140,16 @@ export async function GET(request: Request) {
       if (job.cron_expression) {
         // Recurring job: reschedule, never mark COMPLETED (that would end recurrence)
         const next = parser.parse(job.cron_expression, { currentDate: new Date() }).next().toDate();
-        await db.update(jobs).set({
+        console.log(`[CRON][job=${job.id}] BEFORE reschedule UPDATE: attempts-from-claim=${job.attempts}, writing attempts=0, scheduledFor=${next.toISOString()}`);
+        const rescheduleResult = await db.update(jobs).set({
           status: 'QUEUED',
           scheduledFor: next,
           attempts: 0,
           lockedAt: null,
           lockedByWorkerId: null,
           updatedAt: new Date(),
-        }).where(eq(jobs.id, job.id));
+        }).where(eq(jobs.id, job.id)).returning();
+        console.log(`[CRON][job=${job.id}] AFTER reschedule UPDATE returning:`, JSON.stringify(rescheduleResult));
         summary.recurringRescheduled++;
       } else {
         await db.update(jobs).set({
