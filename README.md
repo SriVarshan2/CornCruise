@@ -35,7 +35,30 @@ flowchart TB
     Retry --> DB
     DLQ --> DB
 ```
+## 🏗 System Architecture
 
+```mermaid
+mermaid
+flowchart TB
+    Browser["Browser Dashboard<br/>(Next.js + React)"]
+    API["Next.js App Router<br/>REST API Routes"]
+    Auth["Auth Middleware<br/>jose JWT + Tenant Isolation"]
+    Routes["REST API Layer<br/>Auth / Orgs / Projects / Queues / Retry Policies / Jobs"]
+    Scheduler["External Scheduler<br/>(cron-job.org, every 1 min)"]
+    Executor["Executor Endpoint<br/>/api/cron/execute<br/>CRON_SECRET auth"]
+    Claim["Atomic Claim (CTE)<br/>FOR UPDATE SKIP LOCKED<br/>+ stale-lock reclaim (5 min)"]
+    Retry["Retry Backoff Engine<br/>FIXED / LINEAR / EXPONENTIAL"]
+    DLQ["Dead Letter Queue<br/>(denormalized, no FK)"]
+    DB[("Neon Serverless Postgres<br/>via Drizzle ORM")]
+
+    Browser --> API --> Auth --> Routes --> DB
+    Scheduler --> Executor --> Claim --> DB
+    Claim --> Retry --> DLQ
+    Retry --> DB
+    DLQ --> DB
+```
+
+Requests from the dashboard flow through Next.js API routes, gated by JWT auth and tenant-isolation middleware. Since Vercel's Hobby tier does not support sub-daily cron schedules, an external scheduler (cron-job.org) invokes the executor endpoint every minute. The executor atomically claims jobs, runs the retry/backoff engine on failures, and routes exhausted retries to the Dead Letter Queue. All state lives in a single Neon Postgres database.
 
 ### Core Mechanisms
 
