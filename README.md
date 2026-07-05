@@ -1,4 +1,4 @@
-# 🛳️ CronCruise: Serverless Distributed Job Scheduler
+#  CronCruise: Serverless Distributed Job Scheduler
 
 CronCruise is a production-inspired distributed job scheduling platform built as an "At-Least-Once Micro-Batch Executor," designed to reliably execute asynchronous background jobs across multiple workers — entirely within the serverless constraints of Vercel.
 
