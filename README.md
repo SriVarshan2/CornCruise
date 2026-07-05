@@ -4,6 +4,15 @@ CronCruise is a production-inspired distributed job scheduling platform built as
 
 **Live Deployment:** https://corn-cruise-dqx8-fkrzqhdfv-srivarshan2s-projects.vercel.app
 **Repository:** https://github.com/SriVarshan2/CornCruise
+## Demo Credentials
+
+Use the following account to explore the application.
+
+**Email:** demo@croncruise.dev
+
+**Password:** Demo@123
+
+> Alternatively, you can create a new account using the Sign Up page.
 
 ## 🛠 Tech Stack
 
